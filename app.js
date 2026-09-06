@@ -448,7 +448,7 @@
       '<div class="mini-card"><h4>🕹️ Interactive demos</h4><p>Play with gradient descent, least squares, eigenvectors, PCA and EM directly inside the chapters — drag, slide, and watch the math move.</p></div>' +
       '<div class="mini-card"><h4>🗝️ Formula vault</h4><p>Every chapter’s key formulas on one page — perfect for revision the night before an interview or exam.</p><p style="margin-top:8px"><a href="#/cheatsheets">Open vault →</a></p></div>' +
       '<div class="mini-card"><h4>🧭 Research roadmap</h4><p>A staged path from this book to pure-math ML research: analysis, measure theory, convex geometry, kernel methods — with books to read.</p><p style="margin-top:8px"><a href="#/roadmap">Open roadmap →</a></p></div>' +
-      '<div class="mini-card"><h4>📖 The source book</h4><p>The full PDF of <em>Mathematics for Machine Learning</em> (free from the authors) — read the matching chapter after each module here.</p><p style="margin-top:8px"><a href="https://mml-book.github.io" target="_blank">Get the official free PDF →</a></p></div>';
+      '<div class="mini-card"><h4>📖 The source book</h4><p>The full PDF of <em>Mathematics for Machine Learning</em> (free from the authors) — read the matching chapter after each module here.</p><p style="margin-top:8px"><a href="https://mml-book.github.io/book/mml-book.pdf" target="_blank">Open the official free PDF →</a></p></div>';
     v.appendChild(tools);
 
     crumbs([{ t: 'Welcome' }]);
