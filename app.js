@@ -108,6 +108,12 @@
     welcome.innerHTML = '<span class="nav-icon">🏠</span><span class="nav-main"><span class="nav-title">Start here</span></span>';
     nav.appendChild(welcome);
 
+    var dash = el('a', 'nav-item');
+    dash.href = '#/dashboard';
+    dash.dataset.page = 'dashboard';
+    dash.innerHTML = '<span class="nav-icon">📊</span><span class="nav-main"><span class="nav-title">Dashboard</span></span>';
+    nav.appendChild(dash);
+
     nav.appendChild(el('div', 'nav-group', 'Foundations'));
     MML.chapters.forEach(function (ch, i) {
       if (ch.special === 'roadmap') return;
@@ -443,6 +449,7 @@
       MML.chapters.reduce(function (a, c) { return a + (c.concepts ? c.concepts.length : 0); }, 0) +
       '+ concept cards</span><span>step-by-step hand workouts</span><span>interactive demos</span><span>practice sets</span><span>research roadmap</span></div>';
     v.appendChild(hero);
+    v.appendChild(el('div', 'exam-controls', '<a class="pill-btn primary" href="#/dashboard" style="text-decoration:none">📊 Open dashboard — what to study today?</a>'));
 
     var loop = el('div', '');
     loop.innerHTML = '<h2 class="page-title" style="font-size:1.4rem">The learning loop (use it for every card)</h2>' +
@@ -983,6 +990,85 @@
     crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Practice arena' }]);
   }
 
+  /* ---------- dashboard ---------- */
+  function dashboardPage() {
+    var v = document.getElementById('view');
+    v.innerHTML = '';
+    var done = 0, totalC = 0;
+    var perCh = [];
+    MML.chapters.forEach(function (ch) {
+      if (ch.special === 'roadmap') return;
+      var st = chapterStats(ch);
+      done += st.done; totalC += st.total;
+      perCh.push({ ch: ch, done: st.done, total: st.total, pct: st.total ? st.done / st.total : 0 });
+    });
+    var pct = totalC ? Math.round(100 * done / totalC) : 0;
+
+    var deck = buildDeck();
+    var due = dueCards(deck);
+    var boxes = [0, 0, 0, 0, 0, 0];
+    deck.forEach(function (c) { boxes[boxOf(c.key)]++; });
+
+    var attempts = state.examAttempts;
+    var weak = {};
+    var chMap = {};
+    MML.exam.sets.forEach(function (s) {
+      s.problems.forEach(function (p) { chMap[s.id + '|' + p.n] = p.chapter; });
+    });
+    attempts.forEach(function (a) {
+      Object.keys(a.grades || {}).forEach(function (n) {
+        var chId = chMap[a.setId + '|' + n];
+        if (!chId) return;
+        var g = a.grades[n];
+        weak[chId] = (weak[chId] || 0) + (g === 'miss' ? 1 : g === 'partial' ? 0.5 : 0);
+      });
+    });
+    var weakList = Object.keys(weak).filter(function (k) { return weak[k] > 0; })
+      .sort(function (a, b) { return weak[b] - weak[a]; });
+
+    v.appendChild(el('div', 'page-head',
+      '<div class="kicker">Your command center</div><h1 class="page-title">📊 Dashboard</h1>' +
+      '<div class="tagline">Everything the app knows about your progress, and what to do next.</div>'));
+
+    var stats = el('div', 'card-grid');
+    stats.innerHTML =
+      '<div class="mini-card"><h4>📚 Concepts</h4><p style="font-size:1.6rem;font-weight:800;color:var(--accent)">' + done + ' / ' + totalC + '</p><p>' + pct + '% mastered · ' + (totalC - done) + ' to go</p></div>' +
+      '<div class="mini-card"><h4>🃏 Flashcards</h4><p style="font-size:1.6rem;font-weight:800;color:var(--accent)">' + due.length + '</p><p>due now of ' + deck.length + ' · ' + boxes[0] + ' still in box 0</p></div>' +
+      '<div class="mini-card"><h4>📝 Exam attempts</h4><p style="font-size:1.6rem;font-weight:800;color:var(--accent)">' + attempts.length + '</p><p>' + (attempts.length ? 'best scores live on the exam hub' : 'none recorded yet — finish a graded set first') + '</p></div>' +
+      '<div class="mini-card"><h4>🎯 Miss-units</h4><p style="font-size:1.6rem;font-weight:800;color:var(--accent)">' + (weakList.length ? weakList.reduce(function (a, k) { return a + weak[k]; }, 0).toFixed(1) : '0') + '</p><p>' + (weakList.length ? 'across ' + weakList.length + ' chapters' : 'nothing flagged — record an attempt') + '</p></div>';
+    v.appendChild(stats);
+
+    var plan = el('div', 'why-box');
+    var items = [];
+    if (due.length) items.push('<li style="padding-left:26px;position:relative;margin:6px 0"><span style="position:absolute;left:0;color:var(--good);font-weight:700">1.</span> <b>Clear ' + due.length + ' due flashcards</b> — formulas fade fastest. <a href="#/flashcards">Start →</a></li>');
+    if (weakList.length) {
+      var wch = getCh(weakList[0]);
+      if (wch) items.push('<li style="padding-left:26px;position:relative;margin:6px 0"><span style="position:absolute;left:0;color:var(--good);font-weight:700">' + (items.length + 1) + '.</span> <b>Restudy your weakest chapter: ' + wch.icon + ' Ch ' + wch.num + ' — ' + esc(wch.title) + '</b> (' + weak[weakList[0]].toFixed(1) + ' miss-units). <a href="#/' + wch.id + '">Review →</a></li>');
+    }
+    var untouched = perCh.filter(function (p) { return p.done === 0; })[0];
+    if (untouched) items.push('<li style="padding-left:26px;position:relative;margin:6px 0"><span style="position:absolute;left:0;color:var(--good);font-weight:700">' + (items.length + 1) + '.</span> <b>Start an untouched chapter: ' + untouched.ch.icon + ' Ch ' + untouched.ch.num + ' — ' + esc(untouched.ch.title) + '</b>. <a href="#/' + untouched.ch.id + '">Open →</a></li>');
+    var noAttempts = MML.exam.sets.filter(function (s) { return !bestForSet(s.id); });
+    if (noAttempts.length) {
+      var s0 = noAttempts[0];
+      items.push('<li style="padding-left:26px;position:relative;margin:6px 0"><span style="position:absolute;left:0;color:var(--good);font-weight:700">' + (items.length + 1) + '.</span> <b>Record a graded attempt: ' + s0.icon + ' ' + esc(s0.title) + '</b> (exam mode + self-grade feeds the weak-spot tracker). <a href="#/exam/' + s0.id + '">Start →</a></li>');
+    }
+    if (!items.length) items.push('<li style="padding-left:26px;position:relative;margin:6px 0">Everything green — go read a research paper from the 🧭 roadmap. <a href="#/roadmap">Open →</a></li>');
+    plan.innerHTML = '<h3>📌 Today\u2019s plan (auto-prioritized)</h3><ul class="goals">' + items.join('') + '</ul>';
+    v.appendChild(plan);
+
+    var tbl = el('div', 'why-box');
+    var rows = perCh.map(function (p) {
+      var pctC = Math.round(100 * p.pct);
+      return '<tr><td style="white-space:nowrap"><a href="#/' + p.ch.id + '" style="text-decoration:none">' + p.ch.icon + ' Ch ' + p.ch.num + '</a></td>' +
+        '<td style="min-width:140px"><div class="progress-track"><div class="progress-fill" style="width:' + pctC + '%"></div></div></td>' +
+        '<td>' + p.done + '/' + p.total + '</td><td>' + pctC + '%</td></tr>';
+    }).join('');
+    tbl.innerHTML = '<h3>📈 Chapter mastery</h3><div class="table-wrap"><table class="mml"><tr><th>Chapter</th><th style="width:40%">Progress</th><th>Mastered</th><th>%</th></tr>' + rows + '</table></div>';
+    v.appendChild(tbl);
+
+    crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Dashboard' }]);
+  }
+
   /* ---------- formula vault ---------- */
   function cheatsPage() {
     var v = document.getElementById('view');
@@ -1089,6 +1175,7 @@
     document.getElementById('search-results').classList.add('hidden');
 
     if (page === 'welcome' || !page) { welcomePage(); }
+    else if (page === 'dashboard') { dashboardPage(); }
     else if (page === 'flashcards') { flashcardsPage(); }
     else if (page === 'patterns') { patternsPage(state.route.cid); }
     else if (page === 'exam') {
