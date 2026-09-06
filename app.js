@@ -129,7 +129,7 @@
 
     var extras = el('div', '');
     extras.innerHTML = '<div class="nav-group">Toolbox</div>';
-    [['#/exam', '📝', 'Exam gym (CIS 5200)'], ['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
+    [['#/exam', '📝', 'Exam gym (CIS 5200)'], ['#/patterns', '🧬', 'Exam patterns'], ['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
       .forEach(function (p) {
         var a = el('a', 'nav-item'); a.href = p[0]; a.dataset.page = p[0].slice(2);
         a.innerHTML = '<span class="nav-icon">' + p[1] + '</span><span class="nav-main"><span class="nav-title">' + p[2] + '</span></span>';
@@ -458,13 +458,139 @@
   /* ---------- exam gym ---------- */
   function bold(s) { return String(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
 
+  var LS_EXAMS = 'mml-academy-exams-v1';
+  state.examAttempts = (function () { try { return JSON.parse(localStorage.getItem(LS_EXAMS)) || []; } catch (e) { return []; } })();
+  state.sessionGrades = {};
+  state.examActive = null;
+  state.examTimer = null;
+
+  function saveExamAttempts() {
+    try { localStorage.setItem(LS_EXAMS, JSON.stringify(state.examAttempts)); } catch (e) {}
+  }
+  function gradeWeight(g) { return g === 'full' ? 1 : g === 'partial' ? 0.5 : 0; }
+  function setTotalPts(set) { return set.problems.reduce(function (a, p) { return a + p.pts; }, 0); }
+  function sessionScore(set) {
+    var earned = 0, graded = 0;
+    set.problems.forEach(function (p) {
+      var g = state.sessionGrades[set.id + '|' + p.n];
+      if (g) { graded++; earned += gradeWeight(g) * p.pts; }
+    });
+    return { earned: earned, graded: graded, total: setTotalPts(set) };
+  }
+  function bestForSet(setId) {
+    var best = null;
+    state.examAttempts.forEach(function (a) {
+      if (a.setId === setId && (!best || a.pct > best.pct)) best = a;
+    });
+    return best;
+  }
+  function fmtClock(ms) {
+    if (ms < 0) ms = 0;
+    var s = Math.round(ms / 1000);
+    var m = Math.floor(s / 60); s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function stopExamTimer() {
+    if (state.examTimer) { clearInterval(state.examTimer); state.examTimer = null; }
+  }
+  function startExamMode(set) {
+    var mins = set.mins || 30;
+    state.examActive = { setId: set.id, endsAt: Date.now() + mins * 60000, mins: mins };
+    examPage(set.id);
+  }
+  function finishExamMode() {
+    stopExamTimer();
+    state.examActive = null;
+    examPage(state.route.cid);
+  }
+  function tickClock() {
+    var elClock = document.getElementById('ex-clock');
+    if (!elClock || !state.examActive) { stopExamTimer(); return; }
+    var rem = state.examActive.endsAt - Date.now();
+    elClock.textContent = fmtClock(rem);
+    var banner = document.getElementById('ex-banner');
+    if (banner && rem <= 0) banner.classList.add('over');
+    if (rem <= -2000) { finishExamMode(); }
+  }
+  function updateScoreLine(set) {
+    var line = document.getElementById('ex-score-line');
+    if (!line) return;
+    var sc = sessionScore(set);
+    line.innerHTML = sc.graded
+      ? 'Graded: <b>' + sc.earned.toFixed(1) + ' / ' + sc.total + ' pts</b> (' + Math.round(100 * sc.earned / sc.total) + '%) · ' + sc.graded + '/' + set.problems.length + ' problems'
+      : 'Not graded yet — reveal a solution, then self-grade ✓ / ~ / ✗';
+    var btn = document.getElementById('ex-record-btn');
+    if (btn) btn.disabled = !sc.graded;
+  }
+  function recordAttempt(set) {
+    var sc = sessionScore(set);
+    if (!sc.graded) return;
+    var grades = {};
+    set.problems.forEach(function (p) {
+      var g = state.sessionGrades[set.id + '|' + p.n];
+      if (g) grades[p.n] = g;
+    });
+    state.examAttempts.push({ setId: set.id, when: Date.now(), earned: sc.earned, total: sc.total, pct: 100 * sc.earned / sc.total, grades: grades });
+    saveExamAttempts();
+    var note = document.getElementById('ex-recorded');
+    if (note) {
+      var b = bestForSet(set.id);
+      note.textContent = '✓ Recorded — attempt #' + state.examAttempts.filter(function (a) { return a.setId === set.id; }).length + (b ? ' · best: ' + Math.round(b.pct) + '%' : '');
+    }
+  }
+
+  /* ---------- patterns page ---------- */
+  function patternsPage(pid) {
+    var v = document.getElementById('view');
+    v.innerHTML = '';
+    v.appendChild(el('div', 'page-head',
+      '<div class="kicker">Exam gym · the meta-layer</div>' +
+      '<h1 class="page-title">🧬 Exam patterns</h1>' +
+      '<div class="tagline">The ' + MML.patterns.length + ' reusable solution templates behind most assessment problems. Learn the pattern once, recognize it everywhere — each card links to every exam problem it solves.</div>'));
+    MML.patterns.forEach(function (pt) {
+      var card = el('div', 'concept');
+      card.id = 'pattern-' + pt.id;
+      var head = el('div', 'concept-head');
+      head.appendChild(el('div', 'concept-num', pt.icon));
+      head.appendChild(el('div', 'concept-title', pt.name));
+      card.appendChild(head);
+      var body = el('div', 'concept-body');
+      var bi = el('div', 'block b-intu');
+      bi.appendChild(el('p', 'block-h', '👀 When you see this'));
+      bi.appendChild(el('div', '', pt.see));
+      body.appendChild(bi);
+      body.appendChild(mathBlock('The template', pt.math));
+      var bs = el('div', 'block b-hand');
+      bs.appendChild(el('p', 'block-h', '✍️ The moves'));
+      var ol = el('ul', 'sol-steps');
+      pt.steps.forEach(function (s) { ol.appendChild(el('li', '', s)); });
+      bs.appendChild(ol);
+      body.appendChild(bs);
+      if (pt.refs && pt.refs.length) {
+        var row = el('div', 'links-row');
+        pt.refs.forEach(function (r) {
+          var set = MML.exam.sets.filter(function (x) { return x.id === r.set; })[0];
+          if (!set) return;
+          var a = el('a', 'link-chip pattern-ref', set.icon + ' ' + set.title.split('—')[0].trim() + ' · Q' + r.n);
+          a.href = '#/exam/' + r.set + '/' + r.n;
+          row.appendChild(a);
+        });
+        if (row.firstChild) body.appendChild(row);
+      }
+      card.appendChild(body);
+      v.appendChild(card);
+    });
+    crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Exam patterns' }]);
+  }
+
   function examProblemList(set, v) {
-    var total = 0;
-    set.problems.forEach(function (p) { total += p.pts; });
+    var active = state.examActive && state.examActive.setId === set.id;
+    var total = setTotalPts(set);
     var listCard = el('div', 'concept');
     var cardHead = el('div', 'concept-head');
-    cardHead.appendChild(el('div', 'concept-num', '✅'));
-    cardHead.appendChild(el('div', 'concept-title', set.problems.length + ' problems — ' + total + ' points, fully worked'));
+    cardHead.appendChild(el('div', 'concept-num', active ? '🔒' : '✅'));
+    cardHead.appendChild(el('div', 'concept-title',
+      (active ? 'Exam mode — solutions locked, work on paper' : set.problems.length + ' problems — ' + total + ' points, fully worked')));
     listCard.appendChild(cardHead);
     var body = el('div', 'concept-body');
     var list = el('div', 'practice-list');
@@ -486,12 +612,32 @@
       sw.appendChild(ol);
       if (p.fin) sw.appendChild(el('div', 'hand-answer', '<span class="ans-t">Final answer</span>' + bold(p.fin)));
       it.appendChild(sw);
-      var btn = el('button', 'pill-btn', 'Show solution');
-      btn.addEventListener('click', function () {
-        sw.classList.toggle('hidden');
-        btn.textContent = sw.classList.contains('hidden') ? 'Show solution' : 'Hide solution';
-      });
-      it.appendChild(btn);
+      if (!active) {
+        var btn = el('button', 'pill-btn', 'Show solution');
+        btn.addEventListener('click', function () {
+          sw.classList.toggle('hidden');
+          btn.textContent = sw.classList.contains('hidden') ? 'Show solution' : 'Hide solution';
+        });
+        it.appendChild(btn);
+        var gr = el('div', 'grade-row');
+        gr.appendChild(el('span', '', 'Self-grade:'));
+        [['full', '✓ full'], ['partial', '~ partial'], ['miss', '✗ missed']].forEach(function (g) {
+          var key = set.id + '|' + p.n;
+          var gb = el('button', 'grade-btn' + (state.sessionGrades[key] === g[0] ? ' on-' + g[0] : ''), g[1]);
+          gb.dataset.g = g[0];
+          gb.addEventListener('click', function () {
+            state.sessionGrades[key] = (state.sessionGrades[key] === g[0]) ? undefined : g[0];
+            if (!state.sessionGrades[key]) delete state.sessionGrades[key];
+            gr.querySelectorAll('.grade-btn').forEach(function (b) {
+              b.className = 'grade-btn' + (state.sessionGrades[key] === b.dataset.g ? ' on-' + b.dataset.g : '');
+            });
+            updateScoreLine(set);
+          });
+          gr.appendChild(gb);
+        });
+        gr.appendChild(el('span', '', '· earns ' + (p.pts) + ' / ' + (p.pts / 2) + ' / 0 pts'));
+        it.appendChild(gr);
+      }
       list.appendChild(it);
     });
     body.appendChild(list);
@@ -506,17 +652,54 @@
       '<div class="kicker">Course pack · ' + esc(ex.course) + '</div>' +
       '<h1 class="page-title">📝 Exam gym</h1>' +
       '<div class="tagline">' + ex.intro + '</div>' +
-      '<div class="note" style="margin-top:8px"><b>' + ex.sets.length + ' assessments</b> · ' + totalQ + ' fully worked problems · ' + totalP + ' points total</div>'));
+      '<div class="note" style="margin-top:8px"><b>' + ex.sets.length + ' assessments</b> · ' + totalQ + ' fully worked problems · ' + totalP + ' points · timed simulator + self-grading + <a href="#/patterns">🧬 pattern library</a></div>'));
 
     var grid = el('div', 'card-grid');
     ex.sets.forEach(function (s) {
-      var pts = 0; s.problems.forEach(function (p) { pts += p.pts; });
+      var pts = setTotalPts(s);
+      var attempts = state.examAttempts.filter(function (a) { return a.setId === s.id; });
+      var best = bestForSet(s.id);
+      var stats = attempts.length
+        ? '<p class="note" style="margin-top:6px">' + attempts.length + ' attempt(s)' + (best ? ' · best ' + Math.round(best.pct) + '%' : '') + '</p>'
+        : '';
       var card = el('div', 'mini-card');
-      card.innerHTML = '<h4>' + s.icon + ' ' + esc(s.title) + '</h4><p>' + esc(s.sub) + '</p>' +
-        '<p style="margin-top:8px"><a href="#/exam/' + s.id + '">Solve it →</a> <span class="note">(' + s.problems.length + ' problems · ' + pts + ' pts)</span></p>';
+      card.innerHTML = '<h4>' + s.icon + ' ' + esc(s.title) + '</h4><p>' + esc(s.sub) + '</p>' + stats +
+        '<p style="margin-top:8px"><a href="#/exam/' + s.id + '">Solve it →</a> <span class="note">(' + s.problems.length + ' problems · ' + pts + ' pts' + (s.mins ? ' · ' + s.mins + ' min' : '') + ')</span></p>';
       grid.appendChild(card);
     });
     v.appendChild(grid);
+
+    // weak-topic diagnosis from recorded attempts
+    if (state.examAttempts.length) {
+      var chMap = {};
+      ex.sets.forEach(function (s) {
+        s.problems.forEach(function (p) { chMap[s.id + '|' + p.n] = p.chapter; });
+      });
+      var miss = {};
+      state.examAttempts.forEach(function (a) {
+        Object.keys(a.grades || {}).forEach(function (n) {
+          var ch = chMap[a.setId + '|' + n];
+          if (!ch) return;
+          var g = a.grades[n];
+          miss[ch] = (miss[ch] || 0) + (g === 'miss' ? 1 : g === 'partial' ? 0.5 : 0);
+        });
+      });
+      var entries = Object.keys(miss).map(function (k) { return [k, miss[k]]; })
+        .filter(function (e) { return e[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+      if (entries.length) {
+        var wb = el('div', 'why-box');
+        var chips = entries.map(function (e) {
+          var ch = getCh(e[0]);
+          if (!ch) return '';
+          var misses = e[1] >= 1 ? e[1].toFixed(1) : e[1].toFixed(1);
+          return '<a class="link-chip" href="#/' + ch.id + '">' + ch.icon + ' Ch ' + ch.num + ' · ' + esc(ch.title) + ' — ' + misses + ' miss-units</a>';
+        }).join('');
+        wb.innerHTML = '<h3>🎯 Weak spots (from your recorded attempts)</h3>' +
+          '<div class="links-row" style="margin-top:6px">' + chips + '</div>' +
+          '<p class="note">Miss = 1, partial = 0.5, aggregated over attempts. Click a chapter to review the theory, then retry the linked problems.</p>';
+        v.appendChild(wb);
+      }
+    }
 
     var hw = el('div', 'why-box');
     var rows = ex.homeworks.map(function (h) {
@@ -539,24 +722,76 @@
     var set = null;
     if (setId) set = ex.sets.filter(function (s) { return s.id === setId; })[0];
     if (!set) { examHub(ex, v); return; }
+    stopExamTimer();
+
+    var active = state.examActive && state.examActive.setId === set.id;
+    var best = bestForSet(set.id);
+    var attempts = state.examAttempts.filter(function (a) { return a.setId === set.id; });
 
     v.appendChild(el('div', 'page-head',
       '<div class="kicker"><a href="#/exam" style="text-decoration:none">Exam gym</a> · ' + esc(ex.course) + '</div>' +
       '<h1 class="page-title">' + set.icon + ' ' + esc(set.title) + '</h1>' +
       '<div class="tagline">' + esc(set.sub) + '</div>'));
 
+    if (active) {
+      var banner = el('div', 'timer-banner');
+      banner.id = 'ex-banner';
+      banner.innerHTML = '<span class="clock" id="ex-clock">' + fmtClock(state.examActive.endsAt - Date.now()) + '</span>' +
+        '<span class="tb-note">Exam mode · ' + state.examActive.mins + ' min · solutions locked — work every part on paper. Grading unlocks when you finish.</span>';
+      var finBtn = el('button', 'pill-btn primary', 'Finish & grade');
+      finBtn.style.cssText = 'background:#fff;color:var(--accent);border-color:#fff';
+      finBtn.addEventListener('click', finishExamMode);
+      banner.appendChild(finBtn);
+      v.appendChild(banner);
+      state.examTimer = setInterval(tickClock, 500);
+    }
+
     var wb = el('div', 'why-box');
-    wb.innerHTML = '<h3>📌 How to use this set</h3>' +
-      '<ul class="goals">' +
-      '<li>Attempt every part on <b>paper</b> before revealing — these solutions are written at grading level, so comparing is where you learn.</li>' +
-      '<li>Each problem links the chapter with the underlying theory — a miss tells you exactly what to restudy.</li></ul>' +
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">' +
-      '<a class="pdf-link" href="' + ex.source + '" target="_blank">🗓️ Course site</a>' +
-      '<a class="pdf-link" href="#/exam">← All assessments</a></div>';
+    var head3 = el('h3');
+    head3.textContent = active ? '🕐 Attempt in progress' : '📌 Attempt & grade';
+    wb.appendChild(head3);
+    if (!active) {
+      var scoreLine = el('div', 'score-line');
+      scoreLine.id = 'ex-score-line';
+      wb.appendChild(scoreLine);
+      var ctrls = el('div', 'exam-controls');
+      var startBtn = el('button', 'pill-btn primary', '🕐 Start exam mode' + (set.mins ? ' (' + set.mins + ' min)' : ''));
+      startBtn.addEventListener('click', function () { startExamMode(set); });
+      var recBtn = el('button', 'pill-btn', '💾 Record attempt');
+      recBtn.id = 'ex-record-btn';
+      recBtn.disabled = true;
+      recBtn.addEventListener('click', function () { recordAttempt(set); });
+      ctrls.appendChild(startBtn); ctrls.appendChild(recBtn);
+      wb.appendChild(ctrls);
+      var recNote = el('div', 'note');
+      recNote.id = 'ex-recorded';
+      recNote.style.marginTop = '6px';
+      if (attempts.length) {
+        recNote.textContent = attempts.length + ' recorded attempt(s)' + (best ? ' · best: ' + Math.round(best.pct) + '%' : '');
+      } else {
+        recNote.textContent = 'Untimed practice: reveal solutions as you go, self-grade each problem, then record.';
+      }
+      wb.appendChild(recNote);
+    }
+    var goals = el('ul', 'goals');
+    goals.innerHTML = '<li>Attempt every part on <b>paper</b> before revealing — solutions are written at grading level.</li>' +
+      '<li>Each problem links the theory chapter — a miss tells you exactly what to restudy.</li>' +
+      '<li>Self-grade honestly: ✓ full · ~ partial (half credit) · ✗ missed (0). Scores land in the hub\u2019s weak-spot tracker.</li>';
+    wb.appendChild(goals);
+    var links = el('div', 'exam-controls');
+    links.innerHTML = '<a class="pdf-link" href="' + ex.source + '" target="_blank">🗓️ Course site</a><a class="pdf-link" href="#/exam">← All assessments</a><a class="pdf-link" href="#/patterns">🧬 Pattern library</a>';
+    wb.appendChild(links);
     v.appendChild(wb);
 
     examProblemList(set, v);
+    if (!active) updateScoreLine(set);
     crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Exam gym', href: '#/exam' }, { t: set.title }]);
+  }
+
+  function examDeepLink(set, qn) {
+    examPage(set.id);
+    var el2 = document.getElementById('exam-' + set.id + '-p' + qn);
+    if (el2) setTimeout(function () { el2.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
   }
 
   /* ---------- practice arena ---------- */
@@ -626,6 +861,28 @@
         });
       });
     });
+    // exam problems
+    (MML.exam.sets || []).forEach(function (s) {
+      s.problems.forEach(function (p) {
+        searchIndex.push({
+          kind: 'exam', set: s, n: p.n,
+          title: 'Q' + p.n + ' — ' + (p.topic || '') + ' (' + s.title + ')',
+          sub: s.icon + ' ' + s.title,
+          text: (p.topic + ' ' + s.title + ' ' + stripMath(p.q || '')).toLowerCase(),
+          href: '#/exam/' + s.id + '/' + p.n
+        });
+      });
+    });
+    // patterns
+    (MML.patterns || []).forEach(function (pt) {
+      searchIndex.push({
+        kind: 'pattern', pt: pt,
+        title: pt.icon + ' ' + pt.name + ' (pattern)',
+        sub: 'Exam patterns',
+        text: (pt.name + ' ' + stripMath(pt.see || '')).toLowerCase(),
+        href: '#/patterns/' + pt.id
+      });
+    });
   }
   function stripMath(s) { return String(s).replace(/\$[^$]*\$/g, ' ').replace(/\\\\?\([a-zA-Z0-9{}^_\\ \t=+\-.,*/|()\[\]<>!]*?\\\)/g, ' '); }
 
@@ -640,8 +897,11 @@
           var snip = stripMath(e.text).replace(/\s+/g, ' ');
           var start = Math.max(0, pos - 30);
           var frag = esc(snip.substr(start, 80)).replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '<mark>$&</mark>');
-          return '<a class="sr-item" href="#/' + e.ch.id + '/' + e.c.id + '"><div class="sr-title">' + e.ch.icon + ' ' + esc(e.c.title) + '</div>' +
-            '<div class="sr-sub">Chapter ' + e.ch.num + ' · ' + esc(e.ch.title) + '</div><div class="sr-hit">…' + frag + '…</div></a>';
+          var href = e.kind ? e.href : '#/' + e.ch.id + '/' + e.c.id;
+          var icon = e.kind === 'exam' ? e.set.icon : e.kind === 'pattern' ? e.pt.icon : e.ch.icon;
+          var sub = e.kind === 'exam' ? e.set.icon + ' ' + e.set.title : e.kind === 'pattern' ? 'Exam patterns' : 'Chapter ' + e.ch.num + ' · ' + e.ch.title;
+          return '<a class="sr-item" href="' + href + '"><div class="sr-title">' + icon + ' ' + esc(e.title) + '</div>' +
+            '<div class="sr-sub">' + esc(sub) + '</div><div class="sr-hit">…' + frag + '…</div></a>';
         }).join('')
       : '<div class="sr-item"><div class="sr-sub">No matches. Try: eigen, gradient, kernel, Bayes, SVD…</div></div>';
     box.classList.remove('hidden');
@@ -657,7 +917,12 @@
     document.getElementById('search-results').classList.add('hidden');
 
     if (page === 'welcome' || !page) { welcomePage(); }
-    else if (page === 'exam') { examPage(state.route.cid); }
+    else if (page === 'patterns') { patternsPage(state.route.cid); }
+    else if (page === 'exam') {
+      var exSet = state.route.cid ? MML.exam.sets.filter(function (s) { return s.id === state.route.cid; })[0] : null;
+      if (exSet && parts[1]) examDeepLink(exSet, parts[1]);
+      else examPage(state.route.cid);
+    }
     else if (page === 'practice') { practicePage(); }
     else if (page === 'cheatsheets') { cheatsPage(); }
     else if (page === 'roadmap') {

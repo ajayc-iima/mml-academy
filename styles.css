@@ -216,6 +216,22 @@ a{color:var(--accent)}
 .prevnext .pn-l{font-size:.72rem;color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
 .prevnext .next{text-align:right}
 
+/* ---------- exam mode / grading ---------- */
+.timer-banner{position:sticky;top:62px;z-index:25;display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--accent);color:#fff;border-radius:12px;padding:10px 18px;margin:14px 0;box-shadow:var(--shadow)}
+.timer-banner .clock{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.timer-banner.over{background:var(--hand)}
+.timer-banner .tb-note{font-size:.82rem;opacity:.92;flex:1;min-width:160px}
+.grade-row{display:flex;gap:6px;align-items:center;margin-top:10px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.grade-btn{border:1px solid var(--border);background:var(--panel);border-radius:8px;padding:3px 12px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted)}
+.grade-btn:hover{border-color:var(--accent-line)}
+.grade-btn.on-full{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.grade-btn.on-partial{background:var(--prac-bg);border-color:var(--prac);color:var(--prac)}
+.grade-btn.on-miss{background:var(--hand-bg);border-color:var(--hand);color:var(--hand)}
+.score-line{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-top:4px}
+.score-big{font-size:1.6rem;font-weight:800;color:var(--accent)}
+.exam-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pattern-ref{font-size:.72rem}
+
 /* misc */
 .mobile-only{display:none}
 hr.sep{border:none;border-top:1px solid var(--border);margin:28px 0}

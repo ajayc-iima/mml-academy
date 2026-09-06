@@ -5,7 +5,7 @@
 
   /* ---- migrate the practice-final page into the multi-set structure ---- */
   ex.sets = [{
-    id: 'final', icon: '🏆',
+    id: 'final', icon: '🏆', mins: 150,
     title: 'Practice Final (Spring 2026)',
     sub: '70 pts · 150 min · emphasis on the latter third: autodiff, GMMs, PCA, sampling, generative models',
     problems: ex.problems
@@ -22,7 +22,7 @@
 
   /* ==================== MINI EXAM 1 — PRACTICE ==================== */
   ex.sets.push({
-    id: 'mini1p', icon: '📘',
+    id: 'mini1p', icon: '📘', mins: 15,
     title: 'Mini Exam 1 — Practice',
     sub: '7 pts · covers supervised learning through logistic regression · format twin of the real mini exam',
     problems: [
@@ -58,7 +58,7 @@
 
   /* ==================== MINI EXAM 1 (REAL) ==================== */
   ex.sets.push({
-    id: 'mini1', icon: '⏱️',
+    id: 'mini1', icon: '⏱️', mins: 15,
     title: 'Mini Exam 1 (actual)',
     sub: '16 pts · 15 min · answer only ~4 of 7 questions · supervised learning through logistic regression',
     problems: [
