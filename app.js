@@ -280,6 +280,30 @@
       body.appendChild(bm);
     }
     if (c.byhand) body.appendChild(buildByHand(c.byhand));
+    if (c.drills && c.drills.length) {
+      var db = el('div', 'block b-prac');
+      db.appendChild(el('p', 'block-h', '⚔️ Exam drill — asked the way exams ask it'));
+      db.appendChild(el('p', 'hand-tip', 'Exam-style question with marks and parts. Write your full answer first, then reveal the marking scheme.'));
+      c.drills.forEach(function (d, di) {
+        var it = el('div', 'practice-item');
+        it.style.marginTop = '10px';
+        var sw = el('div', 'sol-wrap hidden');
+        var ol = el('ul', 'sol-steps');
+        (d.s || []).forEach(function (s) { ol.appendChild(el('li', '', typeof s === 'string' ? s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') : s)); });
+        sw.appendChild(ol);
+        if (d.fin) sw.appendChild(el('div', 'hand-answer', '<span class="ans-t">Marking scheme — final</span>' + String(d.fin).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')));
+        it.appendChild(sw);
+        var btn = el('button', 'pill-btn', 'Reveal marking scheme' + (d.pts ? ' (' + d.pts + ' pts)' : ''));
+        btn.addEventListener('click', function () {
+          sw.classList.toggle('hidden');
+          btn.textContent = (sw.classList.contains('hidden') ? 'Reveal' : 'Hide') + ' marking scheme' + (d.pts ? ' (' + d.pts + ' pts)' : '');
+        });
+        it.appendChild(btn);
+        it.insertBefore(el('div', 'pq', '<b>Drill ' + (di + 1) + '.</b> ' + d.q), sw);
+        db.appendChild(it);
+      });
+      body.appendChild(db);
+    }
     card.appendChild(body);
     return card;
   }
