@@ -1,0 +1,125 @@
+CIS5200: Machine Learning Summer 2026
+Homework 2
+Please refer to the notes and slides posted on the website if you need to recall the material discussed
+in the lectures. Point values are provided for reference, and solutions will be graded for effort, not
+correctness.
+1 Written Questions
+Problem 1: Kernels
+Consider two kernel functionsk1 andk2 and their feature mapsϕ1 andϕ2 respectively. In particular,
+k1(x,z ) =ϕ1(x)⊤ϕ1(z) and k2(x,z ) =ϕ2(x)⊤ϕ2(z).
+In this problem, we will work out a few algebraic operations that preserve validity of a kernel.
+1.1 (2 points) Show that k(x,z ) = α·k1(x,z ) is a valid kernel for any constant α≥ 0.
+Specifically, design a feature map ϕ using ϕ1 such that k(x,z ) =ϕ(x)⊤ϕ(z).
+1.2 (2 points) Show that k(x,z ) =k1(x,z ) +k2(x,z ) is a valid kernel. Specifically, design a
+feature map ϕ using ϕ1,ϕ 2 such that k(x,z ) =ϕ(x)⊤ϕ(z).
+1.3 (3 points) Show that k(x,z ) = k1(x,z )·k2(x,z ) is a valid kernel. Specifically, design a
+feature map ϕ using ϕ1,ϕ 2 such that k(x,z ) =ϕ(x)⊤ϕ(z).
+1.4 (3 points) Show that k(x,z ) =Pd
+r=1αr(k1(x,z ))r is a valid kernel assuming αr≥ 0 for
+all r∈{ 1,...,d }.
+Hint: Use 1.1–1.3.
+Problem 2: SVM
+Consider running hard-margin kernel-SVM with the following kernel:
+k(x,z ) =
+(
+1 if x =z
+0 otherwise.
+Assume that the training dataset S ={(x1,y 1),..., (xm,y m)} is such that all xi are distinct (that
+is, for all i̸=j, xi̸=xj) and yi∈{− 1, 1}.
+1
+2.1 (2 points) Recall the hard-margin SVM objective:
+min
+w
+w⊤w s.t. yiw⊤xi≥ 1
+Write the kernalized version of this objective. You can assume that the optimal solution is
+in the span of the training points. Make sure to substitute the value of k to simplify the
+objective.
+2.2 (4 points) Using the kernalized version, find the optimizerα∗ of the optimization problem
+for the given dataset.
+2.3 (2 points) Using α∗ from above show that the classifier learned is:
+f(x) = sign
+ mX
+i=1
+yi1 [x =xi]
+!
+.
+Here 1 [x =xi] is an indicator function that returns 1 if x =xi and 0 otherwise.
+Recall: The sign function is given by sign(x) =
+(
++1 if x≥ 0
+−1 otherwise .
+2.4 (1 point) What is the error of the classifier on the training dataset?
+2.5 (1 point) What is the prediction on any x not seen in the training dataset? What does
+this say about the generalization error of this classifier?
+Problem 3: Decision Trees
+Recall that when building a decision tree for classification problems, we used the notion of node
+purity instead of classification error when deciding how to grow the decision tree. Consider 3-
+dimensional binary datax∈ R3 where the label y∈{− 1, 1} is generated from the first two features
+as f(x) =x1∧¬x2. In other words, the entire dataset of all possible examples can be written as:
+3.1 (1 point) What is the lowest possible classification error that a 1-leaf decision tree (i.e.
+only the root node predicting a constant value) can achieve?
+2
+x1 x2 x3 y
+0 0 0 -1
+0 0 1 -1
+0 1 0 -1
+0 1 1 -1
+1 0 0 1
+1 0 1 1
+1 1 0 -1
+1 1 1 -1
+3.2 (3 points) Consider all three possible splits for growing to a 2-leaf decision tree. Does
+there exist a split that achieves lower classification error than a 1-leaf decision tree? If so, what
+is it? If not, why is that?
+Recall that the entropy of a binary variable with probabilityp isH(p) =−p log2p−(1−p) log2(1−p).
+Also, H(0) =H(1) = 0, H(1/4) =H(3/4)≈ 0.811, and H(1/2) = 1.
+3.3 (1 point) What is the entropy of the 1-leaf decision tree?
+3.4 (4 points) Consider all three possible splits (on x1, x2, or x3) for growing to a 2-leaf
+decision tree. Find the split that results in the lowest possible entropy. What is the entropy
+of this split?
+3.5 (1 point) Looking at the results from the previous parts, explain why entropy serves as
+a more informative measure of split quality than classification error in this particular.
+Practice Problem A: MLE for Linear Regression (0 points)
+Similar to the derivation of the logistic loss in the lecture using maximum (conditional) likelihood
+estimation, here we will derive the squared loss for linear regression.
+Assume that for given x∈ Rd, the label y is generated randomly as
+y =w⊤x +ϵ
+for some fixed w ∈ Rd and ϵ∼ N(0,σ 2) is some normally distributed noise with mean 0 and
+varianceσ2> 0.
+A.1 (3 points) Show that the above model implies that the conditional density of y givenx
+is
+p(y|x) = 1√
+2πσ exp
+
+−(y−w⊤x)2
+2σ2
+
+.
+3
+Hint: Use the density function of the normal distribution.
+A.2 (2 points) Show that the risk of the predictor f(x) = E[y|x], that is,
+R(f) = E
+x,y
+
+(y−f(x))2
+=σ2.
+A.3 (3 points) Recall that the conditional likelihood for the given data{(x1,y 1),..., (xm,y m)}
+is
+ˆL(w,σ ) =p(y1,...,y m|x1,...,x m) =
+mY
+i=1
+p(yi|xi).
+Compute the log conditional likelihood, that is, log ˆL(w,σ ).
+Hint: Use your expression for p(y|x) from part A.1.
+A.4 (2 points) Show that the maximizer of log ˆL(w,σ ) is the same as the minimizer of the
+empirical risk with squared loss, ˆR(w) = 1
+m
+Pm
+i=1(yi−w⊤xi)2.
+Hint: Take the derivative of your result from A.3 and set it equal to zero.
+2 Programming Questions
+Use the link here to access the Google Colaboratory (Colab) file for this homework. Be sure to
+make a copy by going to “File”, and “Save a copy in Drive”.
+This assignment uses the PennGrader system for students to receive immediate feedback. You can
+use the placeholder Penn ID ’99999999’ to test your solutions.
+4

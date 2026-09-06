@@ -1,0 +1,66 @@
+Name:
+F oundations of Machine Learning & Neural Networks Summer 2026
+Mini Exam 1
+Instructor: Eric
+Read the following instructions carefully before starting:
+1. The exam is set for a duration of 15 minutes. You are allowed to refer to the one-page cheat
+sheet that you have brought with you, but not any other course material. Talking to anyone
+other than the course staff regarding the exam is not permitted. We have a zero tolerance
+policy on cheating.
+2. The exam contains only Short format problems:
+• Each short format problem is worth 2 or 3 points for a total of 7 problems worth 16
+points total. You can achieve a maximum of 8 points (i.e. solve 3 or 4 questions).
+• These problems are intended to test your conceptual understanding of the different
+machine learning methods that we have covered in the lectures so far.
+• The solutions are intended to be short (e.g. not more than a few words per asked
+question).
+• You do not need to solve all questions.
+3. If you have any questions during the exam, please raise your hand and one of the staff members
+will come and address your concerns.
+4. Good luck! You’ve got this! :)
+Summer 2026 1 of 4
+Name:
+1 Short format
+The solutions to these problems must be written in the space provided . The solutions
+are intended to be short.
+(a) (2 points) As you increase k in a k-NN classifier from 1 to n (the training set size), how do
+you expect (1) training error and (2) test error to change?
+(b) (2 points) Suppose you are given a training dataset S ={(x1,y 1),..., (xm,ym)} for a classi-
+fication problem, that is, yi∈{± 1} for all i∈ [m]. You run the Perceptron algorithm on this
+data. If you observe that it does not terminate, what assumption is not satisfied by the data?
+Summer 2026 2 of 4
+Name:
+(c) (3 points) Consider the Exponential distribution, which is a continuous distribution over
+positive reals with a probability density function of p(x;λ) = λe−λx for x > 0. Suppose
+you observe the sequence {x1,x 2,x 3} ={2, 4, 6}. What is the maximum likelihood estimate
+(MLE) for the parameter λ given this observation?
+(d) (3 points) Consider the following function F (w) for scalar w:
+F (w) = 2w2 +w4
+Here is how it looks when you plot it:
+(i) Is F a convex function (with respect to w)? (ii) Is it smooth (e.g. L-smooth for some
+finite L > 0)? (iii) Briefly justify your answer. Any type of explanation is acceptable but
+must be correct (e.g. geometrically or mathematically).
+Summer 2026 3 of 4
+Name:
+(e) (2 points) Consider the 1D objective F (w) = 1
+2w2. Suppose you run gradient descent with
+a fixed step size η starting from w1 = 1. For step sizes η∈{ 0.1, 0.5, 2, 2.1}, classify the
+iterate behavior: (i) converges to 0, (ii) oscillates with constant magnitude, or (iii) diverges
+in magnitude.
+(f) (2 points) For a high-dimensional dataset, you train ridge regression with three different
+regularization values and observe:
+• Run A: near-zero training error, very large ∥w∥2
+• Run B: high training error, very small ∥w∥2
+• Run C: moderate training error, moderate ∥w∥2
+Order the runs in terms of regularization strength λ, from weakest to strongest.
+(g) (2 points) Consider a scaled logistic loss
+ℓβ(x,y ) = log
+
+1 + exp
+
+−βy w⊤x
+
+, β > 0.
+If we increaseβ, what happens to the loss on: (i) correctly classified points far from the bound-
+ary (y w⊤x≫ 0), and (ii) confidently misclassified points far on the wrong side (y w⊤x≪ 0)?
+Summer 2026 4 of 4
