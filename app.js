@@ -129,7 +129,7 @@
 
     var extras = el('div', '');
     extras.innerHTML = '<div class="nav-group">Toolbox</div>';
-    [['#/exam', '📝', 'Exam gym (CIS 5200)'], ['#/patterns', '🧬', 'Exam patterns'], ['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
+    [['#/exam', '📝', 'Exam gym (CIS 5200)'], ['#/patterns', '🧬', 'Exam patterns'], ['#/flashcards', '🃏', 'Flashcards'], ['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
       .forEach(function (p) {
         var a = el('a', 'nav-item'); a.href = p[0]; a.dataset.page = p[0].slice(2);
         a.innerHTML = '<span class="nav-icon">' + p[1] + '</span><span class="nav-main"><span class="nav-title">' + p[2] + '</span></span>';
@@ -471,7 +471,7 @@
     tools.innerHTML =
       '<div class="mini-card"><h4>📝 Exam gym — every assessment, fully worked</h4><p>Practice final, both mini exams, and homeworks 1–3: every question solved step by step at grading level, each linked to the theory chapter.</p><p style="margin-top:8px"><a href="#/exam">Open exam gym →</a></p></div>' +
       '<div class="mini-card"><h4>🕹️ Interactive demos</h4><p>Play with gradient descent, least squares, eigenvectors, PCA and EM directly inside the chapters — drag, slide, and watch the math move.</p></div>' +
-      '<div class="mini-card"><h4>🗝️ Formula vault</h4><p>Every chapter’s key formulas on one page — perfect for revision the night before an interview or exam.</p><p style="margin-top:8px"><a href="#/cheatsheets">Open vault →</a></p></div>' +
+      '<div class="mini-card"><h4>🗝️ Formula vault + 🃏 Flashcards</h4><p>Every chapter’s key formulas on one printable page — and a spaced-repetition flashcard trainer that drills you on them until they stick.</p><p style="margin-top:8px"><a href="#/cheatsheets">Open vault →</a> <a href="#/flashcards">Start flashcards →</a></p></div>' +
       '<div class="mini-card"><h4>🧭 Research roadmap</h4><p>A staged path from this book to pure-math ML research: analysis, measure theory, convex geometry, kernel methods — with books to read.</p><p style="margin-top:8px"><a href="#/roadmap">Open roadmap →</a></p></div>' +
       '<div class="mini-card"><h4>📖 The source book</h4><p>The full PDF of <em>Mathematics for Machine Learning</em> (free from the authors) — read the matching chapter after each module here.</p><p style="margin-top:8px"><a href="https://mml-book.github.io/book/mml-book.pdf" target="_blank">Open the official free PDF →</a></p></div>';
     v.appendChild(tools);
@@ -830,7 +830,124 @@
     if (el2) setTimeout(function () { el2.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
   }
 
-  /* ---------- practice arena ---------- */
+  /* ---------- flashcards (Leitner SRS over the formula vault) ---------- */
+  var LS_SRS = 'mml-academy-srs-v1';
+  state.srs = (function () { try { return JSON.parse(localStorage.getItem(LS_SRS)) || {}; } catch (e) { return {}; } })();
+  function saveSrs() { try { localStorage.setItem(LS_SRS, JSON.stringify(state.srs)); } catch (e) {} }
+
+  function buildDeck() {
+    var deck = [];
+    MML.chapters.forEach(function (ch) {
+      (ch.cheatsheet || []).forEach(function (f, i) {
+        deck.push({ key: ch.id + '|' + i, front: (ch.icon ? ch.icon + ' ' : '') + f.n, back: f.t,
+          sub: 'Ch ' + ch.num + ' · ' + ch.title });
+      });
+    });
+    return deck;
+  }
+  function boxOf(key) { return (state.srs[key] && state.srs[key].box) || 0; }
+  function dueCards(deck) {
+    var now = Date.now();
+    return deck.filter(function (c) {
+      var s = state.srs[c.key];
+      if (!s) return true;                       // never seen: due
+      if (s.box === 0) return true;              // struggling: always due
+      var interval = Math.pow(2, s.box) * 86400000; // box k ≈ every 2^k days
+      return now - s.at >= interval;
+    });
+  }
+  function rateCard(key, dir) {
+    var box = boxOf(key);
+    box = dir === 'again' ? 0 : Math.min(5, box + (dir === 'easy' ? 2 : 1));
+    state.srs[key] = { box: box, at: Date.now() };
+    saveSrs();
+  }
+
+  function flashcardsPage() {
+    var v = document.getElementById('view');
+    v.innerHTML = '';
+    var deck = buildDeck();
+    var due = dueCards(deck);
+    var boxes = [0, 0, 0, 0, 0, 0];
+    deck.forEach(function (c) { boxes[boxOf(c.key)]++; });
+
+    v.appendChild(el('div', 'page-head',
+      '<div class="kicker">Toolbox · spaced repetition</div><h1 class="page-title">🃏 Flashcards</h1>' +
+      '<div class="tagline">Active recall over the formula vault, with Leitner-box scheduling: cards you rate “again” come back every session; cards you know graduate to longer intervals.</div>'));
+
+    var stats = el('div', 'fc-stats');
+    stats.innerHTML = '<span class="stat"><b id="fc-due-count">' + due.length + '</b> due now</span>' +
+      '<span class="stat"><b>' + deck.length + '</b> cards</span>' +
+      '<span class="stat">boxes: <span id="fc-box-row">' + boxes.map(function (b, i) { return '<span class="fc-box-chip">B' + i + ': ' + b + '</span>'; }).join(' ') + '</span></span>';
+    v.appendChild(stats);
+
+    var stage = el('div', 'fc-stage');
+    v.appendChild(stage);
+
+    var queue = due.slice();
+    var idx = 0, flipped = false, done = 0;
+    var rateRow = el('div', 'fc-rate');
+    v.appendChild(rateRow);
+    var doneMsg = el('div', 'note');
+    v.appendChild(doneMsg);
+
+    function renderCard() {
+      typeset(stage);
+      rateRow.innerHTML = '';
+      var boxes2 = [0, 0, 0, 0, 0, 0];
+      deck.forEach(function (c) { boxes2[boxOf(c.key)]++; });
+      if (document.getElementById('fc-box-row')) {
+        document.getElementById('fc-box-row').innerHTML = boxes2.map(function (b, i) { return '<span class="fc-box-chip">B' + i + ': ' + b + '</span>'; }).join(' ');
+        document.getElementById('fc-due-count').textContent = dueCards(deck).length;
+      }
+      if (idx >= queue.length) {
+        stage.innerHTML = '<div class="fc-body" style="font-size:1.2rem">🎉 Session complete — ' + done + ' card' + (done === 1 ? '' : 's') + ' reviewed.</div>' +
+          '<div class="fc-hint">Come back tomorrow: graduated boxes resurface on their 2<sup>box</sup>-day schedules.</div>';
+        doneMsg.innerHTML = '<a class="pdf-link" href="#/cheatsheets">← Formula vault</a> <a class="pdf-link" href="#/exam">📝 Exam gym</a>';
+        typeset(doneMsg);
+        return;
+      }
+      var c = queue[idx];
+      stage.innerHTML = '<div class="fc-ch">' + esc(c.sub) + '</div>' +
+        '<div class="fc-body">' + (flipped ? c.back : '<b style="font-size:1.15rem">' + esc(c.front) + '</b>') + '</div>' +
+        '<div class="fc-hint">' + (flipped ? 'How well did you know it?' : 'Click the card (or press Space) to flip') + '</div>';
+      typeset(stage);
+      if (flipped) {
+        var bAgain = el('button', 'pill-btn', '✗ Again');
+        var bGood = el('button', 'pill-btn primary', '✓ Good');
+        var bEasy = el('button', 'pill-btn', '✓✓ Easy');
+        bAgain.addEventListener('click', function () { rate(c, 'again'); });
+        bGood.addEventListener('click', function () { rate(c, 'good'); });
+        bEasy.addEventListener('click', function () { rate(c, 'easy'); });
+        rateRow.appendChild(bAgain); rateRow.appendChild(bGood); rateRow.appendChild(bEasy);
+      }
+    }
+    function rate(c, dir) {
+      rateCard(c.key, dir);
+      done++; idx++; flipped = false;
+      renderCard();
+    }
+    function flip() { flipped = !flipped; renderCard(); }
+    stage.addEventListener('click', flip);
+    document.onkeydown = function (e) {
+      if (state.route.page !== 'flashcards') { document.onkeydown = null; return; }
+      if (e.code === 'Space') { e.preventDefault(); flip(); }
+      if (flipped && e.key === '1') { if (rateRow.firstChild) rateRow.children[0].click(); }
+      if (flipped && e.key === '2') { if (rateRow.children[1]) rateRow.children[1].click(); }
+      if (flipped && e.key === '3') { if (rateRow.children[2]) rateRow.children[2].click(); }
+    };
+    renderCard();
+
+    var refresh = el('div', 'exam-controls');
+    refresh.innerHTML = '<button class="pill-btn" id="fc-restart">↺ Review same queue</button>' +
+      '<a class="pdf-link" href="#/cheatsheets">🗝️ Formula vault</a>';
+    v.appendChild(refresh);
+    document.getElementById('fc-restart').addEventListener('click', function () {
+      queue = dueCards(deck).slice(); idx = 0; flipped = false; done = 0; renderCard();
+    });
+
+    crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Flashcards' }]);
+  }
   function practicePage() {
     var v = document.getElementById('view');
     v.innerHTML = '';
@@ -870,16 +987,35 @@
   function cheatsPage() {
     var v = document.getElementById('view');
     v.innerHTML = '';
+    var withCs = MML.chapters.filter(function (ch) { return (ch.cheatsheet || []).length; });
+    var total = withCs.reduce(function (a, ch) { return a + ch.cheatsheet.length; }, 0);
     v.appendChild(el('div', 'page-head',
       '<div class="kicker">Toolbox</div><h1 class="page-title">🗝️ Formula vault</h1>' +
-      '<div class="tagline">Every formula worth knowing by heart, grouped by chapter. Each entry names what the formula <em>means</em>, not just what it says.</div>'));
-    MML.chapters.forEach(function (ch) {
-      if (!(ch.cheatsheet || []).length) return;
+      '<div class="tagline">Every formula worth knowing by heart, grouped by chapter. Each entry names what the formula <em>means</em>, not just what it says.</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">' +
+      '<a class="pdf-link" href="#/flashcards">🃏 Drill these as flashcards</a>' +
+      '<button class="pdf-link" id="print-vault" style="cursor:pointer">🖨 Print cheat sheets</button></div>'));
+    var toc = el('div', 'filter-row');
+    withCs.forEach(function (ch) {
+      var c = el('button', 'filter-chip', ch.icon + ' Ch ' + ch.num + ' · ' + esc(ch.title.split(':')[0]));
+      c.addEventListener('click', function () {
+        var t = document.getElementById('vault-' + ch.id);
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      toc.appendChild(c);
+    });
+    v.appendChild(toc);
+    v.appendChild(el('div', 'note', total + ' formulas · ' + withCs.length + ' chapters'));
+
+    withCs.forEach(function (ch) {
       var sec = el('div', '');
+      sec.id = 'vault-' + ch.id;
+      sec.style.scrollMarginTop = '70px';
       sec.appendChild(el('h2', 'page-title', '<span style="font-size:1.1rem">' + ch.icon + ' Chapter ' + ch.num + ' — ' + esc(ch.title) + '</span>'));
       sec.appendChild(mathBlock('', ch.cheatsheet.map(function (f) { return { h: f.n, t: f.t }; }), '🗝️'));
       v.appendChild(sec);
     });
+    document.getElementById('print-vault').addEventListener('click', function () { window.print(); });
     crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Formula vault' }]);
   }
 
@@ -953,6 +1089,7 @@
     document.getElementById('search-results').classList.add('hidden');
 
     if (page === 'welcome' || !page) { welcomePage(); }
+    else if (page === 'flashcards') { flashcardsPage(); }
     else if (page === 'patterns') { patternsPage(state.route.cid); }
     else if (page === 'exam') {
       var exSet = state.route.cid ? MML.exam.sets.filter(function (s) { return s.id === state.route.cid; })[0] : null;
