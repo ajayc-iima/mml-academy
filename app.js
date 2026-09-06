@@ -741,7 +741,7 @@
     var attempts = state.examAttempts.filter(function (a) { return a.setId === set.id; });
 
     v.appendChild(el('div', 'page-head',
-      '<div class="kicker"><a href="#/exam" style="text-decoration:none">Exam gym</a> · ' + esc(ex.course) + '</div>' +
+      '<div class="kicker"><a href="#/exam" style="text-decoration:none">Exam gym</a> · ' + esc(set.tag || ex.course) + '</div>' +
       '<h1 class="page-title">' + set.icon + ' ' + esc(set.title) + '</h1>' +
       '<div class="tagline">' + esc(set.sub) + '</div>'));
 
