@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MML Academy — Mathematics for Machine Learning, made easy</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>∑</text></svg>">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-head">
+      <div class="logo"><span class="logo-glyph">∑</span>
+        <div><div class="logo-name">MML Academy</div>
+        <div class="logo-sub">math → machine learning</div></div>
+      </div>
+      <div class="overall-progress">
+        <div class="progress-track"><div class="progress-fill" id="overall-fill"></div></div>
+        <div class="progress-label"><span id="overall-pct">0%</span> mastered</div>
+      </div>
+    </div>
+    <nav id="side-nav"></nav>
+    <div class="side-foot">
+      <button id="theme-btn" class="ghost-btn" title="Toggle light/dark">🌙 Dark</button>
+      <button id="reset-btn" class="ghost-btn" title="Clear all progress">↺ Reset progress</button>
+    </div>
+  </aside>
+  <div id="sidebar-scrim"></div>
+  <main id="main">
+    <header id="topbar">
+      <button id="menu-btn" class="ghost-btn mobile-only">☰</button>
+      <div id="crumbs"></div>
+      <div class="topbar-right">
+        <div id="search-wrap">
+          <input id="search-input" type="search" placeholder="Search concepts…  ( / )">
+          <div id="search-results" class="hidden"></div>
+        </div>
+      </div>
+    </header>
+    <div id="view"></div>
+    <footer id="foot">Built as a personal learning companion for <em>Mathematics for Machine Learning</em> (Deisenroth, Faisal &amp; Ong, 2020). The full book PDF ships alongside this app.</footer>
+  </main>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="vendor/katex/auto-render.min.js"></script>
+<script>window.MML = { chapters: [] };</script>
+<script src="content/ch01.js"></script>
+<script src="content/ch02.js"></script>
+<script src="content/ch03.js"></script>
+<script src="content/ch04.js"></script>
+<script src="content/ch05.js"></script>
+<script src="content/ch06.js"></script>
+<script src="content/ch07.js"></script>
+<script src="content/ch08.js"></script>
+<script src="content/ch09.js"></script>
+<script src="content/ch10.js"></script>
+<script src="content/ch11.js"></script>
+<script src="content/ch12.js"></script>
+<script src="content/roadmap.js"></script>
+<script src="widgets.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

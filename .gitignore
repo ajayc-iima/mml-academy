@@ -1,0 +1,7 @@
+# Personal-use book PDF: excluded from the public repo (copyright).
+# The app links to the authors' official free download instead.
+mml-book.pdf
+
+# OS cruft
+Thumbs.db
+.DS_Store
