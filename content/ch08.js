@@ -62,7 +62,7 @@
         subtitle: 'the train/test discipline and the bias–variance instinct',
         intuition: String.raw`A model can ace its training data by <b>memorizing</b> rather than learning — a degree-9 polynomial through 10 points has zero training error and nonsense in between. <b>Overfitting</b> = fitting noise. <b>Underfitting</b> = model too weak to capture the signal. The only protection is honesty: hold out data the model never sees (<b>test set</b>), and tune your choices on a third slice (<b>validation</b>). Generalization gap = test error − train error; the entire craft of ML is choosing model capacity so this gap stays small.`,
         math: [
-          { h: 'The decomposition to keep in mind', t: String.raw`$$\text{expected test error} = \underbrace{\text{bias}}_{\text{too simple}} + \underbrace{\text{variance}}_{\text{too flexible}} + \underbrace{\text{noise}}_{\text{irreducible}}$$ Capacity ↑: bias ↓, variance ↑. The sweet spot is an empirical question — found via validation.` },
+          { h: 'The decomposition to keep in mind', t: String.raw`At a fixed test point \(\boldsymbol{x}\), with true function \(f\) and noise \(y = f(\boldsymbol{x}) + \varepsilon\), \(\mathbb{E}[\varepsilon^2] = \sigma^2\): $$\mathbb{E}\big[(y - \hat{f}(\boldsymbol{x}))^2\big] = \underbrace{\big(\mathbb{E}[\hat{f}(\boldsymbol{x})] - f(\boldsymbol{x})\big)^2}_{\text{Bias}^2\;(\text{too simple})} \;+\; \underbrace{\mathbb{E}\big[(\hat{f}(\boldsymbol{x}) - \mathbb{E}[\hat{f}(\boldsymbol{x})])^2\big]}_{\text{Variance}\;(\text{too flexible})} \;+\; \underbrace{\sigma^2}_{\text{irreducible noise}}$$ Note it is \(\text{Bias}^{\mathbf{2}}\) — the squared deviation of the <em>average model</em> from the truth. Capacity ↑: bias ↓, variance ↑. The sweet spot is an empirical question — found via validation.` },
           { h: 'Polynomial degree as capacity knob', t: String.raw`$$p_m(x) = \sum_{k=0}^{m} \theta_k x^k$$ \(m = 1\): underfits curves. \(m = n - 1\) for \(n\) points: interpolates exactly (zero training error, wild between points). \(m\) is your capacity dial; ridge \(\lambda\) (Ch 9) is the continuous version.` }
         ],
         ml: String.raw`Train/val/test splits, \(k\)-fold cross-validation, early stopping, dropout, weight decay, data augmentation — the whole regularized-training toolkit exists to manage this trade-off. Over-parameterized deep networks famously <em>do</em> reach zero training error and still generalize ("benign overfitting", double descent) — one of the hottest topics in learning theory, on the research roadmap.`,
@@ -101,7 +101,7 @@
     cheatsheet: [
       { n: 'ERM', t: String.raw`$$\hat{f} = \arg\min_f \frac{1}{n}\sum_i L(y_i, f(\boldsymbol{x}_i))$$` },
       { n: 'Losses', t: String.raw`$$(y - \hat{y})^2,\quad |y - \hat{y}|,\quad -\textstyle\sum y_k \log \hat{p}_k,\quad \max(0, 1 - ys)$$` },
-      { n: 'Error decomposition', t: String.raw`$$\text{test error} = \text{bias} + \text{variance} + \text{noise}$$` },
+      { n: 'Error decomposition', t: String.raw`$$\text{Expected test error} = \text{Bias}^2 + \text{Variance} + \sigma^2_{\text{noise}}$$` },
       { n: 'Bayesian trio', t: String.raw`$$\text{MLE: } \max_\theta p(\mathcal{D}\mid\theta); \quad \text{MAP: } \max_\theta p(\mathcal{D}\mid\theta)p(\theta); \quad \text{predictive: } \int p(y_\star\mid\theta)\,p(\theta\mid\mathcal{D})d\theta$$` }
     ],
     practice: [
