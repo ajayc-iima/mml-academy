@@ -129,7 +129,7 @@
 
     var extras = el('div', '');
     extras.innerHTML = '<div class="nav-group">Toolbox</div>';
-    [['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
+    [['#/exam', '📝', 'Exam gym (CIS 5200)'], ['#/practice', '🏋️', 'Practice arena'], ['#/cheatsheets', '🗝️', 'Formula vault'], ['#/roadmap', '🧭', 'Research roadmap']]
       .forEach(function (p) {
         var a = el('a', 'nav-item'); a.href = p[0]; a.dataset.page = p[0].slice(2);
         a.innerHTML = '<span class="nav-icon">' + p[1] + '</span><span class="nav-main"><span class="nav-title">' + p[2] + '</span></span>';
@@ -445,6 +445,7 @@
 
     var tools = el('div', 'card-grid');
     tools.innerHTML =
+      '<div class="mini-card"><h4>📝 Exam gym — CIS 5200 practice final</h4><p>The Spring 2026 practice final, all 15 questions (70 pts) fully worked and linked to the chapters: autodiff, k-means, GMM/EM, PCA, sampling, VAEs, diffusion.</p><p style="margin-top:8px"><a href="#/exam">Open exam gym →</a></p></div>' +
       '<div class="mini-card"><h4>🕹️ Interactive demos</h4><p>Play with gradient descent, least squares, eigenvectors, PCA and EM directly inside the chapters — drag, slide, and watch the math move.</p></div>' +
       '<div class="mini-card"><h4>🗝️ Formula vault</h4><p>Every chapter’s key formulas on one page — perfect for revision the night before an interview or exam.</p><p style="margin-top:8px"><a href="#/cheatsheets">Open vault →</a></p></div>' +
       '<div class="mini-card"><h4>🧭 Research roadmap</h4><p>A staged path from this book to pure-math ML research: analysis, measure theory, convex geometry, kernel methods — with books to read.</p><p style="margin-top:8px"><a href="#/roadmap">Open roadmap →</a></p></div>' +
@@ -452,6 +453,81 @@
     v.appendChild(tools);
 
     crumbs([{ t: 'Welcome' }]);
+  }
+
+  /* ---------- exam gym ---------- */
+  function bold(s) { return String(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+
+  function examPage() {
+    var ex = MML.exam;
+    var v = document.getElementById('view');
+    v.innerHTML = '';
+    v.appendChild(el('div', 'page-head',
+      '<div class="kicker">Course pack · ' + esc(ex.course) + '</div>' +
+      '<h1 class="page-title">📝 ' + esc(ex.title) + '</h1>' +
+      '<div class="tagline">' + ex.intro + '</div>'));
+
+    var wb = el('div', 'why-box');
+    wb.innerHTML = '<h3>📌 Exam facts</h3><div>' + ex.meta + '</div>' +
+      '<ul class="goals">' + ex.focus.map(function (g) { return '<li>' + g + '</li>'; }).join('') + '</ul>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">' +
+      (location.protocol === 'file:'
+        ? '<a class="pdf-link" href="' + ex.pdf + '" target="_blank">📄 Original exam PDF</a>'
+        : '<a class="pdf-link" href="' + ex.source + '" target="_blank">📄 Get the exam PDF from the course site</a>') +
+      '<a class="pdf-link" href="' + ex.source + '" target="_blank">🗓️ Course calendar &amp; homeworks</a></div>';
+    v.appendChild(wb);
+
+    // homework table
+    var hw = el('div', 'why-box');
+    var rows = ex.homeworks.map(function (h) {
+      return '<tr><td><b>' + h[0] + '</b></td><td>' + h[1] + '</td><td>' + h[2] + '</td></tr>';
+    }).join('');
+    hw.innerHTML = '<h3>🗓️ Course schedule at a glance</h3>' +
+      '<div class="table-wrap"><table class="mml"><tr><th>Assignment</th><th>Out</th><th>Due</th></tr>' + rows + '</table></div>' +
+      '<p class="note">Working through another homework or past exam? Drop the PDF in the app folder and ask for it to be added here — each one becomes a fully worked, chapter-linked problem set like this one.</p>';
+    v.appendChild(hw);
+
+    var total = 0;
+    ex.problems.forEach(function (p) { total += p.pts; });
+
+    var list = el('div', 'practice-list');
+    ex.problems.forEach(function (p) {
+      var it = el('div', 'practice-item');
+      it.id = 'exam-p' + p.n;
+      var diff = p.diff || 'med';
+      var dlabel = diff === 'easy' ? 'warm-up' : diff === 'hard' ? 'challenge' : 'core';
+      var ch = getCh(p.chapter);
+      var chips = '<div class="links-row" style="margin:6px 0 2px">' +
+        '<span class="link-chip" style="cursor:default">' + p.pts + ' pts</span>' +
+        '<span class="link-chip" style="cursor:default">' + esc(p.topic) + '</span>' +
+        (ch ? '<a class="link-chip" href="#/' + ch.id + '">Theory: Ch ' + ch.num + ' · ' + esc(ch.title) + '</a>' : '') +
+        '</div>';
+      it.innerHTML = '<div class="pq"><b>Q' + p.n + '</b> <span class="diff ' + diff + '">' + dlabel + '</span> ' + p.q + '</div>' + chips;
+      var sw = el('div', 'sol-wrap hidden');
+      var ol = el('ul', 'sol-steps');
+      (p.s || []).forEach(function (s) { ol.appendChild(el('li', '', bold(s))); });
+      sw.appendChild(ol);
+      if (p.fin) sw.appendChild(el('div', 'hand-answer', '<span class="ans-t">Final answer</span>' + bold(p.fin)));
+      it.appendChild(sw);
+      var btn = el('button', 'pill-btn', 'Show solution');
+      btn.addEventListener('click', function () {
+        sw.classList.toggle('hidden');
+        btn.textContent = sw.classList.contains('hidden') ? 'Show solution' : 'Hide solution';
+      });
+      it.appendChild(btn);
+      list.appendChild(it);
+    });
+    var listCard = el('div', 'concept');
+    var cardHead = el('div', 'concept-head');
+    cardHead.appendChild(el('div', 'concept-num', '✅'));
+    cardHead.appendChild(el('div', 'concept-title', 'All 15 problems — ' + total + ' points'));
+    listCard.appendChild(cardHead);
+    var body = el('div', 'concept-body');
+    body.appendChild(list);
+    listCard.appendChild(body);
+    v.appendChild(listCard);
+
+    crumbs([{ t: 'Welcome', href: '#/welcome' }, { t: 'Exam gym' }]);
   }
 
   /* ---------- practice arena ---------- */
@@ -552,6 +628,7 @@
     document.getElementById('search-results').classList.add('hidden');
 
     if (page === 'welcome' || !page) { welcomePage(); }
+    else if (page === 'exam') { examPage(); }
     else if (page === 'practice') { practicePage(); }
     else if (page === 'cheatsheets') { cheatsPage(); }
     else if (page === 'roadmap') {
