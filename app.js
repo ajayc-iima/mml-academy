@@ -654,20 +654,32 @@
       '<div class="tagline">' + ex.intro + '</div>' +
       '<div class="note" style="margin-top:8px"><b>' + ex.sets.length + ' assessments</b> · ' + totalQ + ' fully worked problems · ' + totalP + ' points · timed simulator + self-grading + <a href="#/patterns">🧬 pattern library</a></div>'));
 
-    var grid = el('div', 'card-grid');
+    // group sets by course tag, preserving first-appearance order
+    var groups = [];
     ex.sets.forEach(function (s) {
-      var pts = setTotalPts(s);
-      var attempts = state.examAttempts.filter(function (a) { return a.setId === s.id; });
-      var best = bestForSet(s.id);
-      var stats = attempts.length
-        ? '<p class="note" style="margin-top:6px">' + attempts.length + ' attempt(s)' + (best ? ' · best ' + Math.round(best.pct) + '%' : '') + '</p>'
-        : '';
-      var card = el('div', 'mini-card');
-      card.innerHTML = '<h4>' + s.icon + ' ' + esc(s.title) + '</h4><p>' + esc(s.sub) + '</p>' + stats +
-        '<p style="margin-top:8px"><a href="#/exam/' + s.id + '">Solve it →</a> <span class="note">(' + s.problems.length + ' problems · ' + pts + ' pts' + (s.mins ? ' · ' + s.mins + ' min' : '') + ')</span></p>';
-      grid.appendChild(card);
+      var g = s.tag || 'CIS 5200 · Machine Learning (UPenn)';
+      var grp = null;
+      groups.forEach(function (x) { if (x.tag === g) grp = x; });
+      if (!grp) { grp = { tag: g, sets: [] }; groups.push(grp); }
+      grp.sets.push(s);
     });
-    v.appendChild(grid);
+    groups.forEach(function (grp) {
+      v.appendChild(el('div', 'nav-group', grp.tag));
+      var grid = el('div', 'card-grid');
+      grp.sets.forEach(function (s) {
+        var pts = setTotalPts(s);
+        var attempts = state.examAttempts.filter(function (a) { return a.setId === s.id; });
+        var best = bestForSet(s.id);
+        var stats = attempts.length
+          ? '<p class="note" style="margin-top:6px">' + attempts.length + ' attempt(s)' + (best ? ' · best ' + Math.round(best.pct) + '%' : '') + '</p>'
+          : '';
+        var card = el('div', 'mini-card');
+        card.innerHTML = '<h4>' + s.icon + ' ' + esc(s.title) + '</h4><p>' + esc(s.sub) + '</p>' + stats +
+          '<p style="margin-top:8px"><a href="#/exam/' + s.id + '">Solve it →</a> <span class="note">(' + s.problems.length + ' problems · ' + pts + ' pts' + (s.mins ? ' · ' + s.mins + ' min' : '') + ')</span></p>';
+        grid.appendChild(card);
+      });
+      v.appendChild(grid);
+    });
 
     // weak-topic diagnosis from recorded attempts
     if (state.examAttempts.length) {
